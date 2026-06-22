@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STREET ID // AUTOMATION AGENT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Permanent+Marker&family=Space+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <!-- ───────────────────────── TOP BAR ───────────────────────── -->
+  <header class="topbar">
+    <div class="wordmark">STREET&nbsp;ID&nbsp;<span class="slash">//</span>&nbsp;STUDIO</div>
+    <div class="topbar-right">АВТОМАТ_АГЕНТ · AUTOMATION&nbsp;AGENT</div>
+  </header>
+
+  <!-- ───────────────────────── HERO ───────────────────────── -->
+  <section class="hero">
+    <div class="hero-ghost">STREET ID</div>
+    <div class="hero-content">
+      <p class="kicker">АВТОРСКАЯ АВТОМАТИЗАЦИЯ · BROWSER AUTOMATION</p>
+      <h1 class="hero-title">WEBSITE<br />AUTOMATION<br />AGENT</h1>
+      <p class="hero-sub">
+        A mini "Browser-Use" — autonomous Playwright agent that navigates,
+        sees, and fills web forms on its own. <span class="scribble">don't copy — automate</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── MARQUEE STRIP ───────────────────────── -->
+  <div class="marquee">
+    <div class="marquee-track">
+      <span>STREET&nbsp;ID</span><span class="dot">●</span>
+      <span>PLAYWRIGHT</span><span class="dot">●</span>
+      <span>FORM&nbsp;FILL</span><span class="dot">●</span>
+      <span>X,Y&nbsp;CLICK</span><span class="dot">●</span>
+      <span>DON'T&nbsp;COPY&nbsp;—&nbsp;CREATE</span><span class="dot">●</span>
+      <span>STREET&nbsp;ID</span><span class="dot">●</span>
+      <span>PLAYWRIGHT</span><span class="dot">●</span>
+      <span>FORM&nbsp;FILL</span><span class="dot">●</span>
+      <span>X,Y&nbsp;CLICK</span><span class="dot">●</span>
+      <span>DON'T&nbsp;COPY&nbsp;—&nbsp;CREATE</span><span class="dot">●</span>
+    </div>
+  </div>
+
+  <!-- ───────────────────────── CONTROL + LOG ───────────────────────── -->
+  <main class="grid">
+    <!-- Control panel -->
+    <section class="panel control">
+      <h2 class="panel-title">О&nbsp;ЗАДАЧЕ <span class="panel-en">/ THE TASK</span></h2>
+
+      <dl class="meta">
+        <div><dt>TARGET</dt><dd id="cfg-url">…</dd></div>
+        <div><dt>NAME&nbsp;→</dt><dd id="cfg-name">…</dd></div>
+        <div><dt>DESC&nbsp;→</dt><dd id="cfg-desc">…</dd></div>
+      </dl>
+
+      <div class="badges">
+        <span class="badge" id="badge-mode">BRAIN: …</span>
+        <span class="badge" id="badge-headless">BROWSER: …</span>
+      </div>
+
+      <button id="run-btn" class="run-btn">▶ RUN&nbsp;AGENT</button>
+
+      <div class="status-row">
+        <span class="status-light" id="status-light"></span>
+        <span id="status-text">IDLE — waiting for orders</span>
+      </div>
+    </section>
+
+    <!-- Live log terminal -->
+    <section class="panel terminal">
+      <h2 class="panel-title">ПРОЦЕСС <span class="panel-en">/ LIVE LOG</span></h2>
+      <div id="log" class="log"></div>
+    </section>
+  </main>
+
+  <!-- ───────────────────────── WHAT THE AGENT DOES (TOOLS) ───────────────────────── -->
+  <section class="tools-section">
+    <h2 class="section-head">ЧТО&nbsp;МЫ&nbsp;ДЕЛАЕМ <span class="section-en">/ THE 7 TOOLS</span></h2>
+    <div class="tools-grid">
+      <article class="tool-card"><h3>open_browser</h3><p>Launch a Chromium instance &amp; page.</p></article>
+      <article class="tool-card"><h3>navigate_to_url</h3><p>Drive the browser to the target URL.</p></article>
+      <article class="tool-card accent"><h3>take_screenshot</h3><p>Capture the current browser viewport.</p></article>
+      <article class="tool-card"><h3>click_on_screen(x,y)</h3><p>Real mouse click at pixel coordinates.</p></article>
+      <article class="tool-card"><h3>send_keys</h3><p>Type text into the focused field.</p></article>
+      <article class="tool-card accent"><h3>scroll</h3><p>Wheel-scroll to reveal hidden elements.</p></article>
+      <article class="tool-card"><h3>double_click</h3><p>Double-click to select existing text.</p></article>
+      <article class="tool-card stamp"><h3>STREET&nbsp;ENERGY</h3><p>Heuristic + optional Claude brain.</p></article>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── SCREENSHOT FEED ───────────────────────── -->
+  <section class="shots-section">
+    <h2 class="section-head">КТО&nbsp;ТЫ? <span class="section-en">/ SCREENSHOT FEED</span></h2>
+    <p class="shots-hint" id="shots-hint">Screenshots captured by the agent appear here as it runs.</p>
+    <div id="shots" class="shots-grid"></div>
+  </section>
+
+  <footer class="footer">
+    STREET&nbsp;ID&nbsp;//&nbsp;AUTOMATION&nbsp;AGENT — Playwright · Python · FastAPI ·
+    <span class="scribble">your new workflow</span>
+  </footer>
+
+  <!-- Lightbox for enlarging a screenshot -->
+  <div id="lightbox" class="lightbox hidden">
+    <img id="lightbox-img" src="" alt="screenshot" />
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
