@@ -1,0 +1,37 @@
+# ── Secrets & local config ───────────────────────────────────────────────────
+.env
+
+# ── Private viva / explanation material (kept OUT of the public repo) ─────────
+# This file is the end-to-end "why we used everything" + viva Q&A cheat-sheet.
+# It is intentionally git-ignored so it stays local to you.
+VIVA_PREP.md
+
+# ── Generated runtime output ─────────────────────────────────────────────────
+screenshots/
+logs/
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Playwright ───────────────────────────────────────────────────────────────
+# (browsers are installed into a shared cache, not the repo, but ignore stray
+#  traces/videos just in case)
+test-results/
+playwright-report/
+*.webm
+trace.zip
+
+# ── Editors / OS ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

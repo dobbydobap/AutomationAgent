@@ -1,0 +1,9 @@
+# ── STREET ID // AUTOMATION AGENT — Python dependencies ──────────────────────
+# Pinned with lower bounds so a fresh `pip install -r requirements.txt`
+# resolves to known-good, wheel-available builds (incl. Python 3.13/3.14).
+
+playwright>=1.49.0        # Browser automation engine (drives Chromium)
+python-dotenv>=1.0.1      # Loads configuration/secrets from a .env file
+fastapi>=0.115.0          # Web framework powering the themed control dashboard
+uvicorn>=0.32.0           # ASGI server that runs the FastAPI dashboard
+anthropic>=0.40.0         # Optional: Claude LLM planner for the "hybrid" brain
