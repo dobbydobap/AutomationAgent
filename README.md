@@ -27,6 +27,16 @@ normal project README.
 fields (the "Bug Title"/Name field and the "Description" textarea), and fills
 them in autonomously — capturing screenshots along the way.
 
+## 🤗 Live demo
+
+**Try it now (no setup):** **https://varshitha2007899-automationagent.hf.space**
+
+[![Open in HF Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-md.svg)](https://huggingface.co/spaces/varshitha2007899/automationAgent)
+
+Open the link and click **▶ RUN AGENT** — the agent runs **headless on the
+server**, so you watch it work through the live log and the screenshot feed
+(first run may take ~20–30s while the server cold-starts Chromium).
+
 > 💸 **Cost & API keys:** This project runs **100% free** and needs **no API
 > key**. The default "brain" is a deterministic heuristic planner — no LLM, no
 > network calls beyond the target site. (The optional Claude planner is the
