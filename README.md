@@ -1,252 +1,186 @@
----
-title: STREET ID Automation Agent
-emoji: 🤖
-colorFrom: red
-colorTo: gray
-sdk: docker
-app_port: 7860
-pinned: false
----
+# STREET ID Website Automation Agent
 
-<!--
-The YAML block above is configuration for Hugging Face Spaces (it tells the
-Space to build from the Dockerfile and serve on port 7860). It is harmless on
-GitHub, where it renders as a small metadata table. Everything below is the
-normal project README.
--->
+An autonomous web automation agent built with Python and Playwright. It opens a
+real Chromium browser, navigates to a target page, detects the form fields on
+its own, and fills them in by driving a real mouse and keyboard. A control
+dashboard (FastAPI) lets you run the agent with one click and watch every action
+and screenshot live.
 
-# STREET ID // Website Automation Agent
+This is Assignment 04 (Website Automation Agent). The agent navigates to
+https://ui.shadcn.com/docs/forms/react-hook-form, detects the form's two fields
+(the Bug Title field, which stands in for "Name", and the Description textarea),
+and fills them in automatically while capturing screenshots.
 
-> A mini "Browser-Use" — an autonomous web-automation agent that navigates to a
-> page, *intelligently* finds form fields, and fills them in by driving a real
-> mouse and keyboard. Built with **Python + Playwright**, with a themed
-> **STREET ID STUDIO** control dashboard (FastAPI) on top.
+## Live demo
 
-**Assignment 04 — Website Automation Agent.** The agent navigates to
-`https://ui.shadcn.com/docs/forms/react-hook-form`, detects the form's
-fields (the "Bug Title"/Name field and the "Description" textarea), and fills
-them in autonomously — capturing screenshots along the way.
+The agent is deployed for free on Hugging Face Spaces:
 
-## 🤗 Live demo
+https://varshitha2007899-automationagent.hf.space
 
-**Try it now (no setup):** **https://varshitha2007899-automationagent.hf.space**
+Open the link and click "RUN AGENT". The browser runs headless on the server, so
+you follow along through the live log and the screenshot feed. The first run may
+take 20 to 30 seconds while the server starts Chromium.
 
-[![Open in HF Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-md.svg)](https://huggingface.co/spaces/varshitha2007899/automationAgent)
+## Cost and API keys
 
-Open the link and click **▶ RUN AGENT** — the agent runs **headless on the
-server**, so you watch it work through the live log and the screenshot feed
-(first run may take ~20–30s while the server cold-starts Chromium).
+The project runs at no cost and needs no API key. The default planner is a
+deterministic heuristic that makes no network calls beyond the target site. The
+optional Claude planner is the only feature that would use a key, and it is off
+by default.
 
-> 💸 **Cost & API keys:** This project runs **100% free** and needs **no API
-> key**. The default "brain" is a deterministic heuristic planner — no LLM, no
-> network calls beyond the target site. (The optional Claude planner is the
-> *only* thing that would use a key, and it stays off by default.)
+## Features
 
----
+- All seven required tools as small, composable methods: open_browser,
+  navigate_to_url, take_screenshot, click_on_screen, send_keys, scroll, and
+  double_click.
+- Coordinate-based interaction. Clicks are real mouse events at pixel positions,
+  the way a human or vision-based agent works, rather than calling a locator's
+  click method directly.
+- Intelligent element detection. Fields are found by their accessibility
+  information (label, then role, then placeholder, then a tag fallback), which
+  is resilient to changes in CSS and markup.
+- Hybrid planner. A deterministic heuristic plan by default, with an optional
+  Claude planner that can be turned on through configuration.
+- Comprehensive logging to the console, to a timestamped log file, and to a live
+  web dashboard that streams every action and screenshot.
+- Two ways to run: a command-line interface and a themed web dashboard.
 
-## ✦ Features
+## Project structure
 
-- **All 7 required tools**, implemented as small composable methods:
-  `open_browser`, `navigate_to_url`, `take_screenshot`, `click_on_screen(x, y)`,
-  `send_keys`, `scroll`, `double_click`.
-- **Coordinate-based interaction** — clicks are real mouse events at pixel
-  `(x, y)`, exactly like a vision/human-style agent (not `locator.click()`).
-- **Intelligent element detection** — accessibility-first (label → role → 
-  placeholder → tag fallback), resilient to CSS/markup changes.
-- **Hybrid "brain"** — deterministic heuristic planner by default (offline,
-  never fails live); optional **Claude** planner when you set an API key.
-- **Comprehensive logging** — console + timestamped log file + a **live web
-  dashboard** that streams every action and screenshot in real time.
-- **Two ways to run** — a clean CLI (`main.py`) or the themed dashboard
-  (`dashboard.py`).
+- config.py - single source of truth for settings, read from a .env file.
+- main.py - command-line entry point.
+- dashboard.py - launches the web dashboard.
+- agent/
+  - logger.py - console and file logging, plus a live event bus for the dashboard.
+  - browser_tools.py - the seven low-level browser tools over Playwright.
+  - element_detector.py - accessibility-first detection that returns (x, y) coordinates.
+  - llm_planner.py - the hybrid planner (heuristic by default, optional Claude).
+  - agent.py - the orchestrator that composes the tools into the workflow.
+- web/
+  - server.py - the FastAPI dashboard, including the live event stream.
+  - static/ - the dashboard front end (index.html, styles.css, app.js).
+- Dockerfile, .dockerignore - container definition for deployment.
+- requirements.txt, .env.example - dependencies and configuration template.
+- PROJECT_REPORT.md - the full project report (design, workflow, results).
 
----
+## Requirements
 
-## ✦ Project structure
+- Python 3.10 or newer (developed on 3.14).
+- Works on Windows, macOS, and Linux.
 
-```
-assignement4GenAI/
-├── agent/
-│   ├── __init__.py          # package exports
-│   ├── logger.py            # console + file logging AND a live event bus (SSE)
-│   ├── browser_tools.py     # the 7 low-level tools (Playwright wrapper)
-│   ├── element_detector.py  # accessibility-first detection → (x, y) coords
-│   ├── llm_planner.py        # hybrid brain: heuristic + optional Claude planner
-│   └── agent.py             # orchestrator: composes the tools into the workflow
-├── web/
-│   ├── server.py            # FastAPI dashboard (SSE stream, run endpoint)
-│   └── static/
-│       ├── index.html       # themed control panel
-│       ├── styles.css       # STREET ID STUDIO theme
-│       └── app.js           # SSE client + screenshot feed
-├── config.py                # single source of truth for settings (.env)
-├── main.py                  # CLI entry point
-├── dashboard.py             # launches the FastAPI dashboard
-├── requirements.txt
-├── .env.example             # copy to .env
-├── ARCHITECTURE.md          # design decisions & workflow
-└── README.md
-```
+## Setup
 
----
+1. Create and activate a virtual environment.
 
-## ✦ Setup
+   On Windows (PowerShell):
 
-### 1. Prerequisites
-- **Python 3.10+** (developed on 3.14)
-- Windows / macOS / Linux
+       python -m venv .venv
+       .venv\Scripts\Activate.ps1
 
-### 2. Create a virtual environment & install dependencies
+   On macOS or Linux:
 
-```bash
-# from the project root
-python -m venv .venv
+       python -m venv .venv
+       source .venv/bin/activate
 
-# Windows (PowerShell)
-.venv\Scripts\Activate.ps1
-# macOS / Linux
-source .venv/bin/activate
+2. Install the dependencies.
 
-pip install -r requirements.txt
-```
+       pip install -r requirements.txt
 
-### 3. Install the Playwright browser (one-time)
+3. Install the Playwright browser (one time).
 
-```bash
-python -m playwright install chromium
-```
+       python -m playwright install chromium
 
-### 4. Create your config
+4. Create your configuration file from the template.
 
-```bash
-# Windows
-copy .env.example .env
-# macOS / Linux
-cp .env.example .env
-```
+   On Windows: copy .env.example .env
+   On macOS or Linux: cp .env.example .env
 
-The defaults work out of the box. Edit `.env` only if you want to change the
-target, the values typed, headless mode, or enable the LLM.
+   The defaults work out of the box. Edit .env only if you want to change the
+   target page, the text typed in, headless mode, or to enable the LLM.
 
----
+## Running
 
-## ✦ Run it
+Command-line interface:
 
-### Option A — CLI
+    python main.py                 runs with the settings from .env
+    python main.py --headless      runs without a visible window
+    python main.py --url <URL>     overrides the target page for one run
 
-```bash
-python main.py                 # uses .env settings (visible browser by default)
-python main.py --headless      # no visible window
-python main.py --url <URL>     # override the target for one run
-```
+You will see live logs in the terminal, a summary at the end, and PNG
+screenshots in the screenshots folder.
 
-You'll see live logs in the terminal, a summary table at the end, and PNGs in
-`screenshots/`.
+Web dashboard:
 
-### Option B — Themed dashboard (recommended for the demo)
+    python dashboard.py
 
-```bash
-python dashboard.py
-```
+Then open http://127.0.0.1:8000 and click "RUN AGENT". The agent launches, its
+actions stream into the live log, and screenshots appear in the feed.
 
-Then open **http://127.0.0.1:8000**. Click **▶ RUN AGENT** — the agent launches,
-its actions stream into the live log, and screenshots appear in the feed as it
-captures them.
+## Running with Docker
 
----
+The repository includes a Dockerfile based on the official Playwright image,
+which already contains Chromium and all the operating-system libraries it needs.
+It runs headless and serves the dashboard on port 7860.
 
-## ✦ Run with Docker
+    docker build -t streetid-agent .
+    docker run -p 7860:7860 streetid-agent
 
-The repo ships a `Dockerfile` based on the official Playwright image (Chromium +
-all OS dependencies preinstalled), so it runs anywhere with **no local Python
-setup**. It runs **headless** and serves the dashboard on port `7860`.
+Then open http://localhost:7860 and click "RUN AGENT".
 
-```bash
-docker build -t streetid-agent .
-docker run -p 7860:7860 streetid-agent
-# open http://localhost:7860  →  click ▶ RUN AGENT
-```
+## Deploying free on Hugging Face Spaces
 
-On the server, "RUN AGENT" drives a headless Chromium; you watch progress
-through the live log and screenshot feed (no visible browser window needed).
+The same container deploys to a free Hugging Face Space (Docker SDK, no credit
+card, no API key).
 
----
+1. Create a free account at https://huggingface.co.
+2. Create a new Space, choose the Docker SDK with a blank template, and make it
+   public.
+3. Push this repository to the Space's git remote. Hugging Face builds the
+   Dockerfile automatically and serves it on port 7860.
 
-## ✦ Deploy free on Hugging Face Spaces
+       git remote add space https://huggingface.co/spaces/<your-username>/<space-name>
+       git push space main
 
-The same container deploys to a **free** Hugging Face Space (Docker SDK — ~16 GB
-RAM, public URL, **no credit card, no API key**).
+   When git asks for a password, paste a Hugging Face write token (from
+   Settings, Access Tokens), not an AI API key.
+4. Wait for the build to finish, then open the Space URL and click "RUN AGENT".
 
-1. Create a free account at <https://huggingface.co>.
-2. **New → Space** → choose **Docker** (blank template), make it **Public**.
-3. Push this repo to the Space's git remote (it builds the `Dockerfile`
-   automatically and serves on port `7860`):
+The Docker SDK is selected when you create the Space, and Hugging Face serves
+Docker Spaces on port 7860 by default, which is the port this app listens on.
 
-   ```bash
-   git remote add space https://huggingface.co/spaces/<your-username>/<space-name>
-   git push space main
-   ```
+## Configuration
 
-   When git asks for a password, paste a free **Hugging Face write token**
-   (Settings → Access Tokens) — *not* an AI API key.
-4. Wait for the build, then open `https://<your-username>-<space-name>.hf.space`
-   and click **▶ RUN AGENT**.
+All settings are read from the .env file:
 
-> The Space’s configuration (Docker SDK + port 7860) is read from the YAML
-> header at the top of this README.
+- TARGET_URL - the page the agent automates. Default: the shadcn form page.
+- NAME_VALUE - the text typed into the first text field. Default: STREET ID STUDIO.
+- DESCRIPTION_VALUE - the text typed into the Description textarea.
+- HEADLESS - true hides the browser window; false shows it. Default: false.
+- SLOW_MO - milliseconds of delay per action so a demo is watchable. Default: 350.
+- TIMEOUT_MS - navigation and element timeout in milliseconds. Default: 30000.
+- USE_LLM - true uses the Claude planner; false uses the heuristic planner. Default: false.
+- ANTHROPIC_API_KEY - required only when USE_LLM is true.
+- LLM_MODEL - the Claude model for the planner. Default: claude-sonnet-4-6.
+- DASHBOARD_HOST and DASHBOARD_PORT - the dashboard address. Default: 127.0.0.1 and 8000.
 
----
+To enable the Claude planner, set USE_LLM to true and provide an
+ANTHROPIC_API_KEY. If the key is missing or the call fails, the agent
+automatically falls back to the heuristic plan, so the task always completes.
 
-## ✦ Configuration (`.env`)
+## How it works
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `TARGET_URL` | shadcn react-hook-form | Page the agent automates |
-| `NAME_VALUE` | `STREET ID STUDIO` | Text typed into the Name/Title field |
-| `DESCRIPTION_VALUE` | *(sentence)* | Text typed into the Description textarea |
-| `HEADLESS` | `false` | `true` hides the browser window |
-| `SLOW_MO` | `350` | ms delay per action so the demo is watchable |
-| `TIMEOUT_MS` | `30000` | navigation/element timeout |
-| `USE_LLM` | `false` | `true` → use the Claude planner |
-| `ANTHROPIC_API_KEY` | *(empty)* | required only when `USE_LLM=true` |
-| `LLM_MODEL` | `claude-sonnet-4-6` | model for the planner |
-| `DASHBOARD_HOST` / `DASHBOARD_PORT` | `127.0.0.1` / `8000` | dashboard address |
+The agent opens a browser, navigates to the page, takes a screenshot, scopes its
+detection to the target form, builds a plan, scrolls the form into view, and for
+each field detects the element, converts it to a screen coordinate, clicks
+there, clears it, types the value, and screenshots the result. It then reads
+each field back to verify the values, takes a final screenshot, and closes the
+browser. The full reasoning is in PROJECT_REPORT.md.
 
-### Optional: enable the Claude brain
-Set `USE_LLM=true` and `ANTHROPIC_API_KEY=sk-ant-...` in `.env`. The agent will
-ask Claude to map the task onto the page's detected fields. If the key is
-missing or the call fails, it **automatically falls back** to the heuristic
-plan — so the task always completes.
+## Troubleshooting
 
----
-
-## ✦ How it works (60-second version)
-
-```
-open_browser → navigate_to_url → screenshot
-            → scrape labels → plan (heuristic | Claude)
-            → scroll form into view
-            → for each field: detect → center (x,y) → click_on_screen
-                              → clear → send_keys → screenshot
-            → verify typed values → final screenshot → close
-```
-
-The agent never hard-codes pixel positions: it *detects* each field
-semantically, then converts the element's bounding box into the `(x, y)` it
-clicks. See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the full reasoning.
-
----
-
-## ✦ Troubleshooting
-
-- **`Executable doesn't exist … run playwright install`** → run
-  `python -m playwright install chromium`.
-- **Field not found** → the live page changed labels; add a candidate to the
-  field's `labels` list in `agent/llm_planner.py` (heuristic plan).
-- **Dashboard shows no screenshots** → ensure the run actually started (status
-  light turns amber) and that `screenshots/` is writable.
-- **LLM errors** → leave `USE_LLM=false`; the heuristic brain needs no network.
-
----
-
-*Don't copy — automate.* — STREET ID // AUTOMATION AGENT
+- "Executable doesn't exist" from Playwright: run python -m playwright install chromium.
+- A field is not found: the live page changed its labels. Add a candidate label
+  to the field in agent/llm_planner.py.
+- The dashboard shows no screenshots: confirm the run started (the status light
+  turns amber) and that the screenshots folder is writable.
+- LLM errors: leave USE_LLM as false. The heuristic planner needs no network.
