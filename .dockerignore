@@ -1,0 +1,22 @@
+# Keep the build context small and private.
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.git/
+.gitignore
+
+# Generated at runtime inside the container
+screenshots/
+logs/
+
+# Secrets & private material
+.env
+VIVA_PREP.md
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
