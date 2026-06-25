@@ -54,8 +54,9 @@ by default.
   - logger.py - console and file logging, plus a live event bus for the dashboard.
   - browser_tools.py - the seven low-level browser tools over Playwright.
   - element_detector.py - accessibility-first detection that returns (x, y) coordinates.
-  - llm_planner.py - the hybrid planner (heuristic by default, optional Claude).
-  - agent.py - the orchestrator that composes the tools into the workflow.
+  - llm_planner.py - the hybrid planner for the form task (heuristic by default, optional Claude).
+  - llm_agent.py - optional Claude-driven loop for free-form tasks on any site.
+  - agent.py - the orchestrator (form fill, navigate-and-search, and free-form task).
 - web/
   - server.py - the FastAPI dashboard, including the live event stream.
   - static/ - the dashboard front end (index.html, styles.css, app.js).
@@ -116,6 +117,41 @@ Web dashboard:
 Then open http://127.0.0.1:8000 and click "RUN AGENT". The agent launches, its
 actions stream into the live log, and screenshots appear in the feed.
 
+## Searching any website
+
+Beyond the demo form, the agent can go to any site, find its search box on its
+own, type a query, and submit. It detects the search box by common patterns
+(search role, search input types, names like q or search, and aria-labels), so it
+works across many sites without per-site code.
+
+From the command line:
+
+    python main.py --url duckduckgo.com --search "iphone 15 pro"
+    python main.py --url en.wikipedia.org --search "Alan Turing"
+    python main.py --url youtube.com --search "playwright tutorial"
+
+From the dashboard, use the "Search any site" box: enter a URL and a query and
+press RUN SEARCH.
+
+Note: Amazon and Google often show a CAPTCHA or bot check to automated or
+headless browsers, especially from a cloud server. The agent still works on any
+URL, but for a smooth demo prefer sites that allow automation, such as
+DuckDuckGo, Bing, Wikipedia, or YouTube. Amazon may work locally with a visible
+(non-headless) browser.
+
+## Optional: free-form tasks with the LLM
+
+When USE_LLM is true and an ANTHROPIC_API_KEY is set, the agent can attempt
+arbitrary multi-step goals. Claude looks at the page's interactive elements and
+chooses the next action (click, type, press, scroll, navigate, or done), which
+the agent executes with the same tools, up to a step limit.
+
+    python main.py --task "search wikipedia for Alan Turing and open the first result"
+
+In the dashboard, the "Free-form task" box appears only when the LLM is enabled.
+This mode is optional and is less reliable than the deterministic search; the
+search and form tasks need no key and no network beyond the target site.
+
 ## Running with Docker
 
 The repository includes a Dockerfile based on the official Playwright image,
@@ -152,9 +188,12 @@ Docker Spaces on port 7860 by default, which is the port this app listens on.
 
 All settings are read from the .env file:
 
-- TARGET_URL - the page the agent automates. Default: the shadcn form page.
+- TARGET_URL - the page the form task automates. Default: the shadcn form page.
 - NAME_VALUE - the text typed into the first text field. Default: STREET ID STUDIO.
 - DESCRIPTION_VALUE - the text typed into the Description textarea.
+- SEARCH_URL - default site for the search task. Default: https://duckduckgo.com.
+- SEARCH_QUERY - default query for the search task. Default: iphone 15 pro.
+- MAX_TASK_STEPS - max actions the optional LLM task loop takes. Default: 8.
 - HEADLESS - true hides the browser window; false shows it. Default: false.
 - SLOW_MO - milliseconds of delay per action so a demo is watchable. Default: 350.
 - TIMEOUT_MS - navigation and element timeout in milliseconds. Default: 30000.

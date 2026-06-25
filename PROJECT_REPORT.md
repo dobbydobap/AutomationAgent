@@ -1,16 +1,5 @@
 # Project Report: Website Automation Agent
 
-Assignment 04 - Website Automation Agent
-
-Submitted by: _______________________
-
-Roll number / ID: _______________________
-
-Course: _______________________
-
-Date: _______________________
-
-
 ## 1. Abstract
 
 This project is an autonomous website automation agent, built as a small-scale
@@ -186,6 +175,37 @@ which is the bug-report form, and restricts every search to that form. Labels
 belonging to other examples can no longer cause a false match. The candidate
 labels were also reordered so that the page's actual label, Bug Title, is tried
 first.
+
+
+## 7.1 Working on any website: navigate-and-search and free-form tasks
+
+The form task is a fixed workflow. To make the agent generally useful it also
+supports two further modes that work on arbitrary sites, both reusing the same
+tools and detector.
+
+The first is a deterministic navigate-and-search mode. Given any URL and a query,
+the agent navigates to the site, finds its search box, types the query, and
+presses Enter. Because search boxes vary across sites, detection first tries the
+common patterns: the search role, search input types, the usual field names such
+as q, search, or field-keywords, and aria-labels that contain the word search,
+before falling back to the general label and placeholder strategies. This single
+set of rules locates the search box on a wide range of sites, including
+DuckDuckGo, Bing, Wikipedia, and YouTube, without any per-site code, and it needs
+no language model. It is worth noting that some large commerce and search sites,
+notably Amazon and Google, actively present CAPTCHAs or bot checks to automated
+or headless browsers, especially from a data-centre address, so demonstrations
+favour sites that permit automation.
+
+The second is an optional free-form task mode, enabled only when the language
+model is configured. The agent runs a short observe, decide, act loop. At each
+step it tags the visible interactive elements on the page and sends a compact,
+numbered list of them, together with the goal and the current address, to Claude,
+which replies with a single structured action: click an element, type into one,
+press a key, scroll, navigate, or declare the goal done. The agent carries out
+that action with the same coordinate-based tools and repeats until the goal is
+met or a small step limit is reached. This mode demonstrates genuine multi-step,
+model-driven control of the browser, while the deterministic search remains the
+reliable default for live demonstration.
 
 
 ## 8. The hybrid planner
