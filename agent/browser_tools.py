@@ -110,8 +110,11 @@ class BrowserTools:
                 if attempt < attempts:  # ponytail: one retry, not a backoff framework
                     await self.page.wait_for_timeout(1000)
 
+        err = str(last_exc)
         msg = f"Navigation to {url} failed: {last_exc}"
-        if any(t in str(last_exc) for t in ("ERR_CONNECTION", "ERR_NAME")):
+        if "ERR_NAME_NOT_RESOLVED" in err:
+            msg += " (could not resolve the domain — check the URL, e.g. 'youtube.com' not 'youtube')"
+        elif "ERR_CONNECTION" in err:
             msg += (" (the site may be blocking automated/datacenter browsers — "
                     "try a visible local run or a different site)")
         raise BrowserError(msg) from last_exc

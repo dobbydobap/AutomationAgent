@@ -33,11 +33,19 @@ from .logger import get_logger
 
 
 def _normalize_url(url: str) -> str:
-    """Prepend https:// when the user gives a bare host like 'amazon.com'."""
+    """Turn user input into a real URL.
+
+    Accepts a full URL ('https://x'), a domain ('amazon.com'), or just a bare
+    name ('youtube' -> 'https://youtube.com'). A name with no dot is assumed to
+    be a .com site.  # ponytail: assume .com for bare names; domains/URLs pass through
+    """
     url = url.strip()
-    if not re.match(r"^https?://", url, re.IGNORECASE):  # ponytail: scheme check, not a full URL parser
-        url = "https://" + url
-    return url
+    if re.match(r"^https?://", url, re.IGNORECASE):
+        return url
+    host, _, rest = url.partition("/")
+    if "." not in host and host != "localhost":
+        host += ".com"
+    return "https://" + host + (("/" + rest) if rest else "")
 
 
 class WebFormAgent:

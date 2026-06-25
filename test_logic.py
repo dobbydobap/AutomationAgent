@@ -12,8 +12,11 @@ from agent.llm_agent import _strip_json
 
 
 def test() -> None:
-    # URL normalisation: bare hosts get https://, real schemes are left alone.
+    # URL normalisation: bare names get https:// + .com, domains/URLs pass through.
+    assert _normalize_url("youtube") == "https://youtube.com"
+    assert _normalize_url("amazon") == "https://amazon.com"
     assert _normalize_url("amazon.com") == "https://amazon.com"
+    assert _normalize_url("en.wikipedia.org") == "https://en.wikipedia.org"
     assert _normalize_url("http://x.com") == "http://x.com"
     assert _normalize_url(" https://y.com ") == "https://y.com"
 
