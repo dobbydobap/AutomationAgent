@@ -5,7 +5,7 @@ Optional free-form task loop. Claude looks at the page's interactive elements an
 picks the next action; we execute it with the same coordinate-based tools used
 everywhere else. This is the "do arbitrary multi-step tasks on any site" mode.
 
-It is off unless USE_LLM=true and an ANTHROPIC_API_KEY is set, and it never
+It is off unless USE_LLM=true and an LLM_API_KEY is set, and it never
 crashes the caller: any error is caught and returned in the result.
 
 ponytail: single tab, 8-step cap, 40-element cap, no DOM-history compaction and
@@ -26,7 +26,8 @@ from .logger import get_logger
 # Tag every visible interactive element with data-agent-idx and return a compact
 # list. We click later via that attribute, so the index always maps back.
 _OBSERVE_JS = """(max) => {
-  const els = [...document.querySelectorAll('a,button,input,textarea,select,[role=button]')];
+  const sel = 'a,button,input,textarea,select,[role=button],[role=link],[role=option]';
+  const els = [...document.querySelectorAll(sel)];
   const out = [];
   let i = 0;
   for (const el of els) {
@@ -36,9 +37,12 @@ _OBSERVE_JS = """(max) => {
     if (!visible) { el.removeAttribute('data-agent-idx'); continue; }
     el.setAttribute('data-agent-idx', i);
     const name = (el.getAttribute('aria-label') || el.placeholder || el.value ||
-                  el.innerText || el.name || '').trim().slice(0, 80);
-    out.push({idx: i, tag: el.tagName.toLowerCase(),
-              type: el.getAttribute('type') || '', name});
+                  el.innerText || el.name || '').trim().replace(/\\s+/g, ' ').slice(0, 90);
+    const item = {idx: i, tag: el.tagName.toLowerCase(),
+                  type: el.getAttribute('type') || '', name};
+    const href = el.getAttribute('href');
+    if (href) item.href = href.slice(0, 80);
+    out.push(item);
     i++;
     if (i >= max) break;
   }
@@ -46,14 +50,32 @@ _OBSERVE_JS = """(max) => {
 }"""
 
 _SYSTEM = (
-    "You are a web-browsing agent. You are given a GOAL, the current URL, and a "
-    "numbered list of visible interactive elements. Reply with ONE JSON action and "
-    "nothing else. Allowed actions: "
-    '{"action":"click","index":N} | {"action":"type","index":N,"text":"..."} | '
-    '{"action":"press","key":"Enter"} | {"action":"scroll","dy":600} | '
-    '{"action":"navigate","url":"https://..."} | {"action":"done","reason":"..."}. '
-    "Prefer typing into a search box then pressing Enter. Call done when the goal "
-    "is met."
+    "You are an autonomous web-browsing agent controlling a REAL Chromium browser "
+    "to accomplish the user's GOAL. You work in a loop: each turn you are given the "
+    "current URL and a numbered list of the visible, interactive elements on the "
+    "page; you reply with EXACTLY ONE action as compact JSON (no prose, no "
+    "markdown, no code fences); the action is executed and you see the updated "
+    "page next turn.\n\n"
+    "Actions:\n"
+    '- {"action":"navigate","url":"https://..."}  open a site. Do this FIRST if the '
+    "current URL is about:blank or the wrong site for the goal.\n"
+    '- {"action":"type","index":N,"text":"..."}  click element N and type text '
+    "(use for a search box).\n"
+    '- {"action":"press","key":"Enter"}  submit the text you just typed.\n'
+    '- {"action":"click","index":N}  click element N (a link, button, or result).\n'
+    '- {"action":"scroll","dy":600}  scroll down to reveal more elements if what '
+    "you need is not in the list.\n"
+    '- {"action":"done","reason":"..."}  the goal is achieved.\n\n'
+    "Rules:\n"
+    "- Output ONLY the single JSON object, nothing else.\n"
+    "- To search a site: find the search box, type the query, then press Enter on "
+    "the next turn, then read the results.\n"
+    "- Ordinals like 'the second video', '2nd result', 'next link' mean: count the "
+    "relevant items in the list IN ORDER and click the one at that position. Video "
+    "and result titles are usually links (tag 'a') whose name is the title.\n"
+    "- If the element you need is not listed, scroll down and look again.\n"
+    "- Take the fewest steps possible and call done as soon as the goal is "
+    "satisfied (e.g. the requested video/page is open)."
 )
 
 
@@ -61,6 +83,13 @@ def _strip_json(text: str) -> str:
     """Pull the JSON object out of a reply that may have prose or ``` fences."""
     start, end = text.find("{"), text.rfind("}")
     return text[start:end + 1] if start != -1 and end != -1 else text
+
+
+def _format_element(e: dict) -> str:
+    """One line per element for the model: index, tag, type, name, and href."""
+    typ = f" type={e['type']}" if e.get("type") else ""
+    href = f" (href {e['href']})" if e.get("href") else ""
+    return f'{e["idx"]}: <{e["tag"]}{typ}> {e["name"]}{href}'
 
 
 async def run_task(
@@ -76,33 +105,31 @@ async def run_task(
     }
 
     if not settings.llm_enabled:
-        result["error"] = "LLM task mode needs USE_LLM=true and ANTHROPIC_API_KEY."
+        result["error"] = "LLM task mode needs USE_LLM=true and an LLM_API_KEY."
         log.error(result["error"])
         return result
 
-    from anthropic import AsyncAnthropic  # lazy import — optional dependency
+    from openai import AsyncOpenAI  # lazy import — optional dependency
 
-    client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+    client = AsyncOpenAI(
+        api_key=settings.llm_api_key, base_url=settings.llm_base_url or None
+    )
     page = tools.page
     assert page is not None
 
     try:
         for step in range(1, max_steps + 1):
             log.step(f"Task step {step}/{max_steps}")
-            elements = await page.evaluate(_OBSERVE_JS, 40)
-            listing = "\n".join(
-                f'{e["idx"]}: <{e["tag"]} type={e["type"]}> {e["name"]}'
-                for e in elements
-            )
+            elements = await page.evaluate(_OBSERVE_JS, 50)
+            listing = "\n".join(_format_element(e) for e in elements)
             user = f"GOAL: {goal}\nURL: {page.url}\nELEMENTS:\n{listing}"
 
-            resp = await client.messages.create(
+            resp = await client.chat.completions.create(
                 model=settings.llm_model, max_tokens=300,
-                system=_SYSTEM, messages=[{"role": "user", "content": user}],
+                messages=[{"role": "system", "content": _SYSTEM},
+                          {"role": "user", "content": user}],
             )
-            text = "".join(
-                b.text for b in resp.content if getattr(b, "type", "") == "text"
-            ).strip()
+            text = (resp.choices[0].message.content or "").strip()
             action = json.loads(_strip_json(text))
             log.info(f"LLM action: {action}")
 

@@ -35,6 +35,7 @@ from dataclasses import dataclass
 from config import settings
 
 from .element_detector import FieldSpec
+from .llm_agent import _strip_json
 from .logger import get_logger
 
 
@@ -64,7 +65,7 @@ class LLMPlanner:
         """Return the plan to execute, preferring the LLM when configured."""
         if settings.llm_enabled:
             try:
-                self.log.info(f"Planning with Claude ({settings.llm_model})…")
+                self.log.info(f"Planning with LLM ({settings.llm_model})…")
                 plan = await self._llm_plan(page_context or "")
                 self.log.success(f"LLM produced a {len(plan.fields)}-field plan.")
                 return plan
@@ -104,11 +105,13 @@ class LLMPlanner:
 
     # ── LLM plan ───────────────────────────────────────────────────────────────
     async def _llm_plan(self, page_context: str) -> Plan:
-        """Ask Claude to map the task onto the form fields it can see."""
-        # Imported lazily so the project runs even without the anthropic package.
-        from anthropic import AsyncAnthropic
+        """Ask the LLM to map the task onto the form fields it can see."""
+        # Imported lazily so the project runs even without the openai package.
+        from openai import AsyncOpenAI
 
-        client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+        client = AsyncOpenAI(
+            api_key=settings.llm_api_key, base_url=settings.llm_base_url or None
+        )
 
         system = (
             "You are the planning module of a browser-automation agent. "
@@ -127,17 +130,15 @@ class LLMPlanner:
             f"FORM FIELDS DETECTED ON PAGE:\n{page_context or '(none provided)'}"
         )
 
-        resp = await client.messages.create(
+        resp = await client.chat.completions.create(
             model=settings.llm_model,
             max_tokens=700,
-            system=system,
-            messages=[{"role": "user", "content": user}],
+            messages=[{"role": "system", "content": system},
+                      {"role": "user", "content": user}],
         )
-        text = "".join(
-            block.text for block in resp.content if getattr(block, "type", "") == "text"
-        ).strip()
+        text = (resp.choices[0].message.content or "").strip()
 
-        data = json.loads(text)
+        data = json.loads(_strip_json(text))
         fields = [
             FieldPlan(
                 spec=FieldSpec(

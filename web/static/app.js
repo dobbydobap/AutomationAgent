@@ -27,7 +27,7 @@ async function loadConfig() {
     el("cfg-name").textContent = cfg.name_value;
     el("cfg-desc").textContent = cfg.description_value;
     el("badge-mode").textContent =
-      "BRAIN: " + (cfg.llm_enabled ? "CLAUDE (" + cfg.llm_model + ")" : "HEURISTIC");
+      "BRAIN: " + (cfg.llm_enabled ? "LLM (" + cfg.llm_model + ")" : "HEURISTIC");
     el("badge-headless").textContent =
       "BROWSER: " + (cfg.headless ? "HEADLESS" : "VISIBLE");
     // Prefill the search console and reveal the LLM task box when enabled.

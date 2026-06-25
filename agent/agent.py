@@ -216,6 +216,15 @@ class WebFormAgent:
             result["success"], result["summary"], result["error"] = (
                 r["success"], r["summary"], r["error"]
             )
+            # When running with a visible browser (local), leave the window open
+            # so the user can watch/interact; close it yourself when done.
+            if not settings.headless and self.tools.page is not None:
+                self.log.info("Task finished — leaving the browser open. "
+                              "Close the window when you're done watching.")
+                try:
+                    await self.tools.page.wait_for_event("close", timeout=300000)
+                except Exception:  # noqa: BLE001 - timed out or already closed
+                    pass
         except Exception as exc:  # noqa: BLE001
             result["error"] = str(exc)
             self.log.error(f"Task failed: {exc}")

@@ -84,14 +84,20 @@ class Settings:
         default_factory=lambda: os.getenv("SEARCH_QUERY", "iphone 15 pro")
     )
 
-    # Agent brain
+    # Agent brain — any OpenAI-compatible provider (Groq is free; also OpenRouter,
+    # Gemini's OpenAI endpoint, OpenAI, etc.). Defaults target Groq's free tier.
     use_llm: bool = field(default_factory=lambda: _env_bool("USE_LLM", False))
     max_task_steps: int = field(default_factory=lambda: _env_int("MAX_TASK_STEPS", 8))
-    anthropic_api_key: str = field(
-        default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", "")
+    llm_api_key: str = field(
+        default_factory=lambda: os.getenv("LLM_API_KEY")
+        or os.getenv("GROQ_API_KEY")
+        or os.getenv("OPENAI_API_KEY", "")
+    )
+    llm_base_url: str = field(
+        default_factory=lambda: os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1")
     )
     llm_model: str = field(
-        default_factory=lambda: os.getenv("LLM_MODEL", "claude-sonnet-4-6")
+        default_factory=lambda: os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
     )
 
     # Output locations (resolved to absolute paths under the project root)
@@ -118,7 +124,7 @@ class Settings:
     @property
     def llm_enabled(self) -> bool:
         """LLM mode is only truly active when toggled ON *and* a key exists."""
-        return self.use_llm and bool(self.anthropic_api_key.strip())
+        return self.use_llm and bool(self.llm_api_key.strip())
 
 
 # The one and only Settings instance the rest of the app imports.
