@@ -18,7 +18,9 @@ click_on_screen, send_keys`` (+ the ``press`` helper for clearing fields).
 
 from __future__ import annotations
 
+import re
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 from playwright.async_api import Locator
 
@@ -28,6 +30,14 @@ from .browser_tools import BrowserTools
 from .element_detector import ElementDetector, ElementNotFound, FieldSpec
 from .llm_planner import FieldPlan, LLMPlanner
 from .logger import get_logger
+
+
+def _normalize_url(url: str) -> str:
+    """Prepend https:// when the user gives a bare host like 'amazon.com'."""
+    url = url.strip()
+    if not re.match(r"^https?://", url, re.IGNORECASE):  # ponytail: scheme check, not a full URL parser
+        url = "https://" + url
+    return url
 
 
 class WebFormAgent:
@@ -49,6 +59,7 @@ class WebFormAgent:
             "plan_source": None,
             "fields_filled": [],
             "screenshots": [],
+            "summary": None,
             "error": None,
         }
 
@@ -95,10 +106,11 @@ class WebFormAgent:
             shot = await self.tools.take_screenshot("final_state")
             result["screenshots"].append(shot.name)
             result["success"] = True
-            self.log.success(
-                f"Task complete — filled {len(result['fields_filled'])} field(s): "
-                f"{', '.join(result['fields_filled'])}."
+            result["summary"] = (
+                f"filled {len(result['fields_filled'])} field(s): "
+                f"{', '.join(result['fields_filled'])}"
             )
+            self.log.success(f"Task complete — {result['summary']}.")
 
             # Pause so a human watching the (non-headless) browser sees the result.
             if not settings.headless:
@@ -115,6 +127,93 @@ class WebFormAgent:
         finally:
             await self.tools.close()
 
+        return result
+
+    # ── generic "go to any site and search" workflow ─────────────────────────────
+    async def search(self, url: str, query: str) -> dict[str, Any]:
+        """Navigate to any site, find its search box, type the query, and submit."""
+        url = _normalize_url(url)
+        result: dict[str, Any] = {
+            "success": False, "url": url, "task": "search", "query": query,
+            "screenshots": [], "summary": None, "error": None,
+        }
+        try:
+            self.log.step("Open browser")
+            page = await self.tools.open_browser()
+            self.detector = ElementDetector(page)
+
+            self.log.step("Navigate to site")
+            await self.tools.navigate_to_url(url)
+            shot = await self.tools.take_screenshot("page_loaded")
+            result["screenshots"].append(shot.name)
+
+            self.log.step(f"Find search box and search for {query!r}")
+            spec = FieldSpec(name="search box", labels=["Search", "Search for"], search=True)
+            locator = await self.detector.locate(spec)
+            x, y = await self.detector.center_of(locator)
+            await self.tools.click_on_screen(x, y)
+            await self.tools.press("Control+A")
+            await self.tools.press("Delete")
+            await self.tools.send_keys(query)
+            await self.tools.press("Enter")
+
+            # Wait for results to render; SPA searches may not fire a full nav.
+            try:
+                await page.wait_for_load_state("networkidle")
+            except Exception:  # noqa: BLE001
+                pass
+            await page.wait_for_timeout(800)
+
+            shot = await self.tools.take_screenshot("results")
+            result["screenshots"].append(shot.name)
+            host = urlparse(url).netloc or url
+            result["success"] = True
+            result["summary"] = f"searched {host} for {query!r}"
+            self.log.success(result["summary"])
+            if not settings.headless:
+                await page.wait_for_timeout(2000)
+
+        except ElementNotFound as exc:
+            result["error"] = f"No search box found: {exc}"
+            self.log.error(result["error"])
+            await self._safe_error_shot(result)
+        except Exception as exc:  # noqa: BLE001
+            result["error"] = str(exc)
+            self.log.error(f"Search failed: {exc}")
+            await self._safe_error_shot(result)
+        finally:
+            await self.tools.close()
+        return result
+
+    # ── optional free-form LLM task ──────────────────────────────────────────────
+    async def do_task(self, goal: str, url: str | None = None) -> dict[str, Any]:
+        """Run the optional Claude-driven action loop against an arbitrary site."""
+        from .llm_agent import run_task
+
+        result: dict[str, Any] = {
+            "success": False, "task": "llm", "goal": goal,
+            "screenshots": [], "summary": None, "error": None,
+        }
+        try:
+            self.log.step("Open browser")
+            page = await self.tools.open_browser()
+            self.detector = ElementDetector(page)
+            if url:
+                self.log.step("Navigate to start URL")
+                await self.tools.navigate_to_url(_normalize_url(url))
+                shot = await self.tools.take_screenshot("page_loaded")
+                result["screenshots"].append(shot.name)
+            r = await run_task(self.tools, self.detector, goal)
+            result["screenshots"] += r.get("screenshots", [])
+            result["success"], result["summary"], result["error"] = (
+                r["success"], r["summary"], r["error"]
+            )
+        except Exception as exc:  # noqa: BLE001
+            result["error"] = str(exc)
+            self.log.error(f"Task failed: {exc}")
+            await self._safe_error_shot(result)
+        finally:
+            await self.tools.close()
         return result
 
     # ── field-filling workflow ──────────────────────────────────────────────────

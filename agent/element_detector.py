@@ -53,6 +53,7 @@ class FieldSpec:
     name: str                       # human label, used only for logging
     labels: list[str] = field(default_factory=list)  # candidate label/placeholder texts
     multiline: bool = False         # True -> prefer <textarea>
+    search: bool = False            # True -> also try search-box-specific strategies
 
 
 class ElementDetector:
@@ -99,6 +100,18 @@ class ElementDetector:
         """Build the ordered (description, locator) list for a field spec."""
         role = "textbox"  # ARIA role for both <input type=text> and <textarea>
         strategies: list[tuple[str, Locator]] = []
+
+        # Search boxes vary a lot across sites, so try the common patterns first.
+        if spec.search:
+            strategies.append(("role=searchbox", self.root.get_by_role("searchbox")))
+            strategies.append((
+                "search input/textarea",
+                self.root.locator(
+                    "input[type='search'], input[name='q'], input[name='search'], "
+                    "input[name='field-keywords'], textarea[name='q'], "
+                    "input[aria-label*='search' i], textarea[aria-label*='search' i]"
+                ),
+            ))
 
         for label in spec.labels:
             strategies.append(

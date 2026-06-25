@@ -76,8 +76,17 @@ class Settings:
     slow_mo: int = field(default_factory=lambda: _env_int("SLOW_MO", 350))
     timeout_ms: int = field(default_factory=lambda: _env_int("TIMEOUT_MS", 30000))
 
+    # Generic "navigate + search" task (dashboard/CLI defaults)
+    search_url: str = field(
+        default_factory=lambda: os.getenv("SEARCH_URL", "https://duckduckgo.com")
+    )
+    search_query: str = field(
+        default_factory=lambda: os.getenv("SEARCH_QUERY", "iphone 15 pro")
+    )
+
     # Agent brain
     use_llm: bool = field(default_factory=lambda: _env_bool("USE_LLM", False))
+    max_task_steps: int = field(default_factory=lambda: _env_int("MAX_TASK_STEPS", 8))
     anthropic_api_key: str = field(
         default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", "")
     )
