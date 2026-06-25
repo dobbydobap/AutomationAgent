@@ -1,3 +1,13 @@
+---
+title: STREET ID Automation Agent
+emoji: 🤖
+colorFrom: red
+colorTo: gray
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # STREET ID Website Automation Agent
 
 An autonomous web automation agent built with Python and Playwright. It opens a
