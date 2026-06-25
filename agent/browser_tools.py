@@ -86,17 +86,35 @@ class BrowserTools:
             raise BrowserError(f"Failed to open browser: {exc}") from exc
 
     # ── TOOL 2: navigate_to_url ──────────────────────────────────────────────
-    async def navigate_to_url(self, url: str) -> None:
-        """Navigate the page to ``url`` and wait for the DOM to be ready."""
+    async def navigate_to_url(self, url: str, attempts: int = 2) -> None:
+        """Navigate the page to ``url``, tolerating busy sites and transient drops."""
         self._require_page()
         self.log.tool("navigate_to_url", url)
-        try:
-            await self.page.goto(url, wait_until="domcontentloaded")
-            # Give client-side React (shadcn demo) a beat to hydrate the form.
-            await self.page.wait_for_load_state("networkidle")
-            self.log.info(f"Loaded: {await self.page.title()!r}")
-        except Exception as exc:  # noqa: BLE001
-            raise BrowserError(f"Navigation to {url} failed: {exc}") from exc
+
+        last_exc: Exception | None = None
+        for attempt in range(1, attempts + 1):
+            try:
+                await self.page.goto(url, wait_until="domcontentloaded")
+                # Best-effort settle: let the page (e.g. shadcn's React form)
+                # hydrate, but don't fail when a busy site like YouTube never
+                # reaches networkidle.  # ponytail: best-effort settle; busy sites never idle
+                try:
+                    await self.page.wait_for_load_state("networkidle", timeout=5000)
+                except Exception:  # noqa: BLE001
+                    await self.page.wait_for_timeout(800)
+                self.log.info(f"Loaded: {await self.page.title()!r}")
+                return
+            except Exception as exc:  # noqa: BLE001
+                last_exc = exc
+                self.log.warn(f"Navigation attempt {attempt}/{attempts} failed: {exc}")
+                if attempt < attempts:  # ponytail: one retry, not a backoff framework
+                    await self.page.wait_for_timeout(1000)
+
+        msg = f"Navigation to {url} failed: {last_exc}"
+        if any(t in str(last_exc) for t in ("ERR_CONNECTION", "ERR_NAME")):
+            msg += (" (the site may be blocking automated/datacenter browsers — "
+                    "try a visible local run or a different site)")
+        raise BrowserError(msg) from last_exc
 
     # ── TOOL 3: take_screenshot ──────────────────────────────────────────────
     async def take_screenshot(self, label: str = "") -> Path:
