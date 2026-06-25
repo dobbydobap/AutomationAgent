@@ -219,34 +219,47 @@ a { color: var(--red); }
 .run-btn:active { transform: translateY(2px); }
 .run-btn:disabled { background: #4a3f39; color: #1c1815; cursor: not-allowed; box-shadow: none; }
 
-/* search / task console */
-.console { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+/* search / task console — same dark palette as the rest of the panel */
+.console {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 .console-label {
   font-family: "Space Mono", monospace;
   font-size: 10px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   color: var(--red);
-  margin-top: 6px;
 }
 .console-input {
+  width: 100%;
+  box-sizing: border-box;
   background: #0a0908;
   border: 1px solid var(--line);
   border-radius: 3px;
-  padding: 10px 12px;
+  padding: 11px 12px;
   color: var(--ink);
   font-family: "Space Mono", monospace;
   font-size: 12px;
+  letter-spacing: 0.02em;
 }
+.console-input::placeholder { color: var(--muted); }
 .console-input:focus { outline: none; border-color: var(--red); }
+
+/* secondary action — outlined so it reads as distinct from the primary RUN button */
 .run-btn-alt {
   background: transparent;
   color: var(--red);
   border: 1px solid var(--red);
-  font-size: 14px;
-  padding: 12px;
+  font-size: 15px;
+  padding: 13px;
+  box-shadow: none;
 }
 .run-btn-alt:hover { background: var(--red); color: #100a08; box-shadow: none; }
-#task-group { display: flex; flex-direction: column; gap: 8px; }
+#task-group { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
 
 .status-row {
   display: flex;
