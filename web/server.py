@@ -24,7 +24,7 @@ import asyncio
 import json
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import Body, FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -68,23 +68,41 @@ async def config_snapshot() -> JSONResponse:
             "llm_model": settings.llm_model if settings.llm_enabled else None,
             "name_value": settings.name_value,
             "description_value": settings.description_value,
+            "search_url": settings.search_url,
+            "search_query": settings.search_query,
         }
     )
 
 
 @app.post("/api/run")
-async def run_agent() -> JSONResponse:
-    """Start an agent run in the background (no-op if one is already running)."""
+async def run_agent(payload: dict | None = Body(default=None)) -> JSONResponse:
+    """Start a run in the background. Body: {mode, url, query, goal} (all optional).
+
+    mode is one of: "form" (default, fill the shadcn form), "search" (go to a site
+    and search), "task" (optional Claude free-form loop).
+    """
     global _current_run
     if _current_run is not None and not _current_run.done():
         return JSONResponse({"status": "already_running"}, status_code=409)
 
+    body = payload or {}
+    mode = (body.get("mode") or "form").lower()
     log = get_logger()
 
     async def _job() -> None:
-        log.info("──────── NEW RUN TRIGGERED FROM DASHBOARD ────────")
+        log.info(f"──────── NEW {mode.upper()} RUN TRIGGERED FROM DASHBOARD ────────")
         agent = WebFormAgent()
-        result = await agent.run()
+        if mode == "search":
+            result = await agent.search(
+                url=body.get("url") or settings.search_url,
+                query=body.get("query") or settings.search_query,
+            )
+        elif mode == "task":
+            result = await agent.do_task(
+                goal=body.get("goal") or "", url=body.get("url") or None,
+            )
+        else:
+            result = await agent.run()
         # Final structured event so the UI can flip its status badge.
         log._publish({  # noqa: SLF001 - intentional internal publish
             "type": "result",

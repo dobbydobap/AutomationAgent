@@ -30,6 +30,10 @@ async function loadConfig() {
       "BRAIN: " + (cfg.llm_enabled ? "CLAUDE (" + cfg.llm_model + ")" : "HEURISTIC");
     el("badge-headless").textContent =
       "BROWSER: " + (cfg.headless ? "HEADLESS" : "VISIBLE");
+    // Prefill the search console and reveal the LLM task box when enabled.
+    el("in-url").value = cfg.search_url || "";
+    el("in-query").value = cfg.search_query || "";
+    if (cfg.llm_enabled) el("task-group").classList.remove("hidden");
   } catch (e) {
     addLine({ level: "error", message: "Could not load /api/config: " + e });
   }
@@ -116,7 +120,7 @@ function connectStream() {
       running = false;
       runBtn.disabled = false;
       if (event.level === "success") {
-        setStatus("ok", "DONE — " + (event.result?.fields_filled?.join(", ") || "complete"));
+        setStatus("ok", "DONE — " + (event.result?.summary || "complete"));
       } else {
         setStatus("fail", "FAILED — " + (event.result?.error || "see log"));
       }
@@ -128,20 +132,26 @@ function connectStream() {
   };
 }
 
-/* ── 7. Run button ─────────────────────────────────────────────────────────── */
-runBtn.addEventListener("click", async () => {
+/* ── 7. Run buttons (form / search / task all POST the same endpoint) ───────── */
+async function startRun(body, label) {
   if (running) return;
   running = true;
   runBtn.disabled = true;
-  setStatus("running", "AGENT RUNNING…");
+  setStatus("running", label + "…");
   // fresh feed for this run
   shotsGrid.innerHTML = "";
   if (shotsHint) shotsHint.style.display = "block";
 
   try {
-    const res = await fetch("/api/run", { method: "POST" });
+    const res = await fetch("/api/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
     if (res.status === 409) {
       addLine({ level: "warn", message: "A run is already in progress." });
+      running = false;
+      runBtn.disabled = false;
     }
   } catch (e) {
     addLine({ level: "error", message: "Failed to start run: " + e });
@@ -149,7 +159,23 @@ runBtn.addEventListener("click", async () => {
     runBtn.disabled = false;
     setStatus("fail", "could not start");
   }
-});
+}
+
+runBtn.addEventListener("click", () => startRun({ mode: "form" }, "AGENT RUNNING"));
+
+el("search-btn").addEventListener("click", () =>
+  startRun(
+    { mode: "search", url: el("in-url").value, query: el("in-query").value },
+    "SEARCHING"
+  )
+);
+
+const taskBtn = el("task-btn");
+if (taskBtn) {
+  taskBtn.addEventListener("click", () =>
+    startRun({ mode: "task", goal: el("in-goal").value, url: el("in-url").value }, "TASK RUNNING")
+  );
+}
 
 /* ── boot ──────────────────────────────────────────────────────────────────── */
 loadConfig();

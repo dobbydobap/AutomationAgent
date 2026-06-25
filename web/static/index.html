@@ -67,6 +67,19 @@
 
       <button id="run-btn" class="run-btn">▶ RUN&nbsp;AGENT</button>
 
+      <div class="console">
+        <label class="console-label">SEARCH ANY SITE</label>
+        <input id="in-url" class="console-input" placeholder="site URL (e.g. duckduckgo.com)" />
+        <input id="in-query" class="console-input" placeholder="search query" />
+        <button id="search-btn" class="run-btn run-btn-alt">RUN&nbsp;SEARCH</button>
+
+        <div id="task-group" class="hidden">
+          <label class="console-label">FREE-FORM TASK (LLM)</label>
+          <input id="in-goal" class="console-input" placeholder="e.g. search wikipedia for Alan Turing" />
+          <button id="task-btn" class="run-btn run-btn-alt">RUN&nbsp;TASK</button>
+        </div>
+      </div>
+
       <div class="status-row">
         <span class="status-light" id="status-light"></span>
         <span id="status-text">IDLE — waiting for orders</span>

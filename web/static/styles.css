@@ -219,6 +219,35 @@ a { color: var(--red); }
 .run-btn:active { transform: translateY(2px); }
 .run-btn:disabled { background: #4a3f39; color: #1c1815; cursor: not-allowed; box-shadow: none; }
 
+/* search / task console */
+.console { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+.console-label {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--red);
+  margin-top: 6px;
+}
+.console-input {
+  background: #0a0908;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 10px 12px;
+  color: var(--ink);
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+}
+.console-input:focus { outline: none; border-color: var(--red); }
+.run-btn-alt {
+  background: transparent;
+  color: var(--red);
+  border: 1px solid var(--red);
+  font-size: 14px;
+  padding: 12px;
+}
+.run-btn-alt:hover { background: var(--red); color: #100a08; box-shadow: none; }
+#task-group { display: flex; flex-direction: column; gap: 8px; }
+
 .status-row {
   display: flex;
   align-items: center;
