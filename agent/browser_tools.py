@@ -141,6 +141,7 @@ class BrowserTools:
         self.log.tool("click_on_screen", f"({x:.0f}, {y:.0f})")
         try:
             await self.page.mouse.move(x, y)
+            await self._show_click(x, y)
             await self.page.mouse.click(x, y)
         except Exception as exc:  # noqa: BLE001
             raise BrowserError(f"Click at ({x},{y}) failed: {exc}") from exc
@@ -180,6 +181,7 @@ class BrowserTools:
         self.log.tool("double_click", f"({x:.0f}, {y:.0f})")
         try:
             await self.page.mouse.move(x, y)
+            await self._show_click(x, y)
             await self.page.mouse.dblclick(x, y)
         except Exception as exc:  # noqa: BLE001
             raise BrowserError(f"double_click at ({x},{y}) failed: {exc}") from exc
@@ -197,6 +199,33 @@ class BrowserTools:
                 await self._pw.stop()
         except Exception as exc:  # noqa: BLE001
             self.log.warn(f"Cleanup warning: {exc}")
+
+    # ── visual aid ────────────────────────────────────────────────────────────
+    async def _show_click(self, x: float, y: float) -> None:
+        """Flash a red ring at (x, y) so a human can see where the agent clicks.
+
+        Purely cosmetic; only visible in a non-headless window, and never fatal.
+        """
+        try:
+            await self.page.evaluate(
+                """([x, y]) => {
+                  const d = document.createElement('div');
+                  d.style.cssText = `position:fixed;left:${x-13}px;top:${y-13}px;`
+                    + `width:26px;height:26px;border:3px solid #ff3b1d;border-radius:50%;`
+                    + `z-index:2147483647;pointer-events:none;`
+                    + `transition:opacity .6s ease, transform .6s ease;`;
+                  document.body.appendChild(d);
+                  requestAnimationFrame(() => {
+                    d.style.opacity = '0';
+                    d.style.transform = 'scale(2.2)';
+                  });
+                  setTimeout(() => d.remove(), 650);
+                }""",
+                [x, y],
+            )
+            await self.page.wait_for_timeout(450)  # let the ring be seen before clicking
+        except Exception:  # noqa: BLE001 - cosmetic only
+            pass
 
     # ── internal guards ───────────────────────────────────────────────────────
     def _require_page(self) -> None:
