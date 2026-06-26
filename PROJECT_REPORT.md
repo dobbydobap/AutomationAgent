@@ -66,9 +66,12 @@ Configuration is loaded from a .env file using python-dotenv, which keeps any
 keys and machine-specific settings out of the source code, as the assignment
 requires.
 
-The optional language-model planner uses the Anthropic Claude software
-development kit. This dependency is imported only when needed, so the project
-runs even if the package is absent or no key is configured.
+The optional language-model features use the OpenAI software development kit
+pointed at any OpenAI-compatible provider. The default target is Groq, which
+offers a free tier, but the same code works with OpenRouter, Google Gemini's
+OpenAI-compatible endpoint, or OpenAI itself simply by changing the base URL,
+model name, and key. This dependency is imported only when needed, so the
+project runs even if the package is absent or no key is configured.
 
 For deployment, Docker is used to package the project so that it runs
 identically anywhere, and Hugging Face Spaces hosts the container for free.
@@ -119,16 +122,19 @@ The open browser tool starts Playwright, launches a Chromium browser using the
 configured headless and slow-motion settings, creates an isolated browser
 context with a fixed window size of 1280 by 900 pixels, and opens a page.
 
-The navigate to URL tool sends the page to the requested address and waits for
-the document and the network to settle, which gives the page's client-side code
-time to render the form.
+The navigate to URL tool sends the page to the requested address and then lets
+it settle on a best-effort basis, so a busy site that never reaches a fully idle
+network does not cause a failure. It retries once on a transient connection drop,
+and it accepts a bare site name as well as a full URL, so typing "youtube"
+becomes "https://youtube.com" automatically.
 
 The take screenshot tool captures the current view to a numbered PNG file in the
 screenshots folder and announces it to the dashboard.
 
 The click on screen tool moves the mouse to a pixel coordinate and clicks there.
 It is a real mouse event at an absolute position rather than a call on a located
-element.
+element. In a visible (non-headless) run it first flashes a brief red ring at the
+target coordinate, so a person watching can see exactly where each click lands.
 
 The send keys tool types text, character by character with a small delay, into
 whatever element currently holds focus.
@@ -199,8 +205,8 @@ favour sites that permit automation.
 The second is an optional free-form task mode, enabled only when the language
 model is configured. The agent runs a short observe, decide, act loop. At each
 step it tags the visible interactive elements on the page and sends a compact,
-numbered list of them, together with the goal and the current address, to Claude,
-which replies with a single structured action: click an element, type into one,
+numbered list of them, together with the goal and the current address, to the
+model, which replies with a single structured action: click an element, type into one,
 press a key, scroll, navigate, or declare the goal done. The agent carries out
 that action with the same coordinate-based tools and repeats until the goal is
 met or a small step limit is reached. This mode demonstrates genuine multi-step,
@@ -218,10 +224,10 @@ The default is a deterministic heuristic plan. It maps the task to sensible
 candidate labels and to the values held in configuration. It makes no network
 calls, is completely repeatable, and cannot fail during a live demonstration.
 
-The optional method uses the Claude language model. The agent scrapes the visible
-labels and placeholders from the live form and asks the model to return a plan,
-as structured data, that maps the task onto the fields it can see. This
-demonstrates genuine model-driven decision making.
+The optional method uses an OpenAI-compatible model (Groq by default, which is
+free). The agent scrapes the visible labels and placeholders from the live form
+and asks the model to return a plan, as structured data, that maps the task onto
+the fields it can see. This demonstrates genuine model-driven decision making.
 
 The two methods are combined so that the language-model path degrades
 gracefully. If the model option is turned off, or the key is missing, or the
@@ -355,9 +361,20 @@ it is located and the moment it is clicked; this is mitigated by computing the
 coordinate immediately before clicking and by scrolling the element into view
 first. The agent currently fills the form but does not submit it, to avoid side
 effects; submitting would be a small addition that locates the submit button and
-clicks its centre. Future work could include driving multiple pages or forms from
-a configurable list, running several browser contexts at once for throughput, and
-expanding the language-model planner to handle more varied page layouts.
+clicks its centre.
+
+The deterministic search does not yet verify that the typed query actually
+landed, so on an anti-bot page that hides the real search box it can report
+success without having searched; the form task, by contrast, verifies by reading
+the field values back, and adding the same post-type check to search would close
+this gap. Finally, large sites such as Amazon, Google, and YouTube refuse the
+cloud Space's data-centre address and serve a bot page with no search box, so
+those sites are demonstrated in a local run while the deployed Space uses
+automation-friendly sites such as DuckDuckGo and Wikipedia.
+
+Future work could include driving multiple pages or forms from a configurable
+list, running several browser contexts at once for throughput, and expanding the
+language-model planner to handle more varied page layouts.
 
 
 ## 17. Conclusion
